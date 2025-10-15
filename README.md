@@ -1,81 +1,65 @@
-# hyfervisor - Apple Silicon Mac에서 macOS 가상머신 실행 도구
+# hyfervisor
 
-## 개요
+Apple Silicon Mac에서 macOS 커널을 live debugging 할 수 있는 가상화 도구
 
-hyfervisor는 Apple Silicon Mac에서 최신버전의 macOS kernel을 live debugging 할 수 있는 도구입니다.
+Apple이 지원하지 않는 커널 라이브 디버깅을 리눅스 QEMU처럼 사용 가능
 
-## 스크린샷
+- 직접 빌드한 XNU 커널과 직접 만든 kext 함께 부팅가능
+- KASAN 커널 부팅 지원
+- breakpoint를 통한 커버리지 확인 가능(불안정하고 느림)
+- gui 1TR 접근 가능
 
-![hyfervisor 스크린샷 1](image/hyfer1.jpeg)
+## Screenshots
 
-![hyfervisor 스크린샷 2](image/hyfer2.jpeg)
+![Menu](image/menu.png)
+![Menu2](image/menu2.png)
+![Menu3](image/menu3.png)
+![Custom Kernel](image/custom_kernel.png)
+![Custom Kext](image/custom_kext.png)
+![KASAN Kernel Boot](image/kasan_kernel_boot.png)
+![Debug KASAN](image/debug_kasan.png)
+![Coverage Check](image/coverage_check.png)
 
-![hyfervisor 스크린샷 3](image/hyfer3.jpeg)
+## Features
 
-## 주요 기능
+- macOS 가상머신 실행
+- 하드웨어 가속 (CPU, 메모리, 그래픽, 네트워크, 오디오)
+- GDB 디버그 스텁 지원
+- 커스텀 커널/Kext 로딩
 
-- **macOS 가상머신 실행**: Apple Silicon Mac에서 macOS를 가상머신으로 실행
-- **하드웨어 가상화**: CPU, 메모리, 그래픽, 네트워크, 오디오 등 다양한 하드웨어 구성 지원
-- **디버그 지원**: GDB 디버그 스텁을 통한 가상머신 디버깅 기능
+## Requirements
 
-## 시스템 요구사항
+- Apple Silicon Mac (M1/M2/M3/M4)
+- macOS 12.0 이상
 
-- **하드웨어**: Apple Silicon Mac (M1, M2, M3 등)
-- **운영체제**: macOS 12.0 (Monterey) 이상
+## Build
 
-
-
-## 빌드 및 실행
-
-### 1. 의존성 확인
 ```bash
-make check-deps
-```
-
-### 2. 전체 빌드
-```bash
+# 전체 빌드
 make all
-```
 
-### 3. 설치 도구만 빌드
-```bash
+# 설치 도구
 make hyfervisor-InstallationTool-Objective-C
-```
 
-### 4. 앱만 빌드
-```bash
+# 메인 앱
 make hyfervisor-Objective-C
-```
 
-### 5. 빌드 정리
-```bash
+# 클린
 make clean
 ```
 
-## 사용 방법
+## Usage
 
-### 1. 설치 도구 실행
 ```bash
-# 빌드 후 실행 파일 위치
-./build/Build/Products/Release/hyfervisor-InstallationTool-Objective-C
-```
+# 1. VM 설치
+./build/Build/Products/Release/hyfervisor-InstallationTool-Objective-C <ipsw path>
 
-### 2. 메인 애플리케이션 실행
-```bash
-# 빌드 후 앱 실행
+# 2. 앱 실행
 open build/Build/Products/Release/hyfervisor-Objective-C.app
 ```
 
+---
 
-## 문제 해결
-
-### 빌드 오류
-```bash
-# 의존성 확인
-make check-deps
-
-# 정리 후 재빌드
-make clean
-make all
-```
-
+![hyfervisor 1](image/hyfer1.jpeg)
+![hyfervisor 2](image/hyfer2.jpeg)
+![hyfervisor 3](image/hyfer3.jpeg)
