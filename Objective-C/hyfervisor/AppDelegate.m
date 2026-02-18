@@ -954,8 +954,86 @@ static void PrintFatalAndExit(NSString *message)
 
 - (void)showNetworkSettingsWindow
 {
-    // TODO: Implement network settings window
-    NSLog(@"Network Settings Window - Interface: %@", self.configManager.networkInterface);
+    NSAlert *alert = [[NSAlert alloc] init];
+    alert.messageText = @"Network Settings";
+    alert.informativeText = @"Choose the bridged interface for the VM or disable networking.";
+
+    NSView *accessoryView = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 340, 110)];
+
+    // Enable/disable networking
+    NSButton *enableCheckbox = [[NSButton alloc] initWithFrame:NSMakeRect(10, 80, 200, 20)];
+    [enableCheckbox setButtonType:NSButtonTypeSwitch];
+    [enableCheckbox setTitle:@"Enable Networking"];
+    [enableCheckbox setState:self.configManager.networkEnabled ? NSControlStateValueOn : NSControlStateValueOff];
+    enableCheckbox.tag = 300;
+    [accessoryView addSubview:enableCheckbox];
+
+    // Interface label
+    NSTextField *interfaceLabel = [[NSTextField alloc] initWithFrame:NSMakeRect(10, 50, 100, 20)];
+    interfaceLabel.stringValue = @"Interface:";
+    interfaceLabel.editable = NO;
+    interfaceLabel.bordered = NO;
+    interfaceLabel.backgroundColor = [NSColor clearColor];
+    [accessoryView addSubview:interfaceLabel];
+
+    // Interface selector
+    NSPopUpButton *interfacePopup = [[NSPopUpButton alloc] initWithFrame:NSMakeRect(110, 44, 210, 26) pullsDown:NO];
+    interfacePopup.tag = 301;
+
+    NSArray<VZBridgedNetworkInterface *> *interfaces = [VZBridgedNetworkInterface networkInterfaces];
+    if (interfaces.count == 0) {
+        NSMenuItem *item = [[NSMenuItem alloc] initWithTitle:@"No bridged interfaces (NAT fallback)" action:nil keyEquivalent:@""];
+        item.enabled = NO;
+        [interfacePopup.menu addItem:item];
+    } else {
+        for (VZBridgedNetworkInterface *iface in interfaces) {
+            NSString *title = [NSString stringWithFormat:@"%@ (%@)", iface.localizedDisplayName, iface.identifier];
+            [interfacePopup addItemWithTitle:title];
+            interfacePopup.lastItem.representedObject = iface.identifier;
+        }
+
+        // Select current interface if available; otherwise default to first
+        NSString *currentInterface = self.configManager.networkInterface;
+        BOOL matched = NO;
+        for (NSMenuItem *item in interfacePopup.itemArray) {
+            if ([item.representedObject isKindOfClass:[NSString class]] &&
+                [item.representedObject isEqualToString:currentInterface]) {
+                [interfacePopup selectItem:item];
+                matched = YES;
+                break;
+            }
+        }
+        if (!matched) {
+            [interfacePopup selectItemAtIndex:0];
+        }
+    }
+
+    [accessoryView addSubview:interfacePopup];
+    alert.accessoryView = accessoryView;
+
+    [alert addButtonWithTitle:@"OK"];
+    [alert addButtonWithTitle:@"Cancel"];
+
+    NSInteger response = [alert runModal];
+    if (response == NSAlertFirstButtonReturn) {
+        NSButton *enableButton = (NSButton *)[accessoryView viewWithTag:300];
+        self.configManager.networkEnabled = (enableButton.state == NSControlStateValueOn);
+
+        NSMenuItem *selectedItem = [(NSPopUpButton *)[accessoryView viewWithTag:301] selectedItem];
+        if (selectedItem.representedObject) {
+            self.configManager.networkInterface = selectedItem.representedObject;
+        }
+
+        [self saveConfiguration];
+
+        NSAlert *confirm = [[NSAlert alloc] init];
+        confirm.messageText = @"Network Settings Updated";
+        confirm.informativeText = [NSString stringWithFormat:@"Networking: %@\nInterface: %@",
+                                   self.configManager.networkEnabled ? @"Enabled" : @"Disabled",
+                                   self.configManager.networkInterface ?: @"(default)"];
+        [confirm addButtonWithTitle:@"OK"];
+        [confirm runModal];
+    }
 }
 
 - (void)showStorageSettingsWindow
