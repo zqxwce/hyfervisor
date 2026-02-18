@@ -52,11 +52,16 @@ make clean
 
 ```bash
 # 1. Install the VM
-./build/Build/Products/Release/hyfervisor-InstallationTool-Objective-C <ipsw path>
+./build/Build/Products/Release/hyfervisor-InstallationTool-Objective-C <ipsw path> [vm bundle path]
 
 # 2. Launch the app
 open build/Build/Products/Release/hyfervisor-Objective-C.app
+# or from CLI with a custom bundle path:
+# open build/Build/Products/Release/hyfervisor-Objective-C.app --args /path/to/VM.bundle
 ```
+
+Pass an explicit VM bundle path if you want the VM artifacts somewhere other than `~/VM.bundle`.
+You can supply the path as the second argument to the installer and as the first argument to `hyfervisor.app` (via `--args`) so both tools operate on the same VM bundle.
 
 ---
 

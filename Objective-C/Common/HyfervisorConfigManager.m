@@ -7,6 +7,7 @@
 //
 
 #import "HyfervisorConfigManager.h"
+#import "Path.h"
 
 static HyfervisorConfigManager *sharedManager = nil;
 
@@ -63,6 +64,10 @@ static HyfervisorConfigManager *sharedManager = nil;
     self.diskSize = [config[@"diskSize"] unsignedLongLongValue] ?: (64ULL * 1024 * 1024 * 1024);
     self.avpBooterPath = config[@"avpBooterPath"] ?: @"/System/Library/Frameworks/Virtualization.framework/Versions/A/Resources/AVPBooter.vmapple2.bin";
     
+    NSString *configuredBundlePath = config[@"vmBundlePath"];
+    NSString *defaultBundlePath = getVMBundlePath(nil);
+    self.vmBundlePath = getVMBundlePath(configuredBundlePath ?: defaultBundlePath);
+    
     NSLog(@"Configuration loaded successfully from %@", configPath);
     return YES;
 }
@@ -96,7 +101,8 @@ static HyfervisorConfigManager *sharedManager = nil;
         @"networkEnabled": @(self.networkEnabled),
         @"networkInterface": self.networkInterface ?: @"en0",
         @"diskSize": @(self.diskSize),
-        @"avpBooterPath": self.avpBooterPath ?: @"/System/Library/Frameworks/Virtualization.framework/Versions/A/Resources/AVPBooter.vmapple2.bin"
+        @"avpBooterPath": self.avpBooterPath ?: @"/System/Library/Frameworks/Virtualization.framework/Versions/A/Resources/AVPBooter.vmapple2.bin",
+        @"vmBundlePath": self.vmBundlePath ?: [NSHomeDirectory() stringByAppendingPathComponent:@"VM.bundle"]
     };
     
     // Save configuration to file
@@ -126,6 +132,7 @@ static HyfervisorConfigManager *sharedManager = nil;
     self.networkInterface = @"en0";
     self.diskSize = 64ULL * 1024 * 1024 * 1024;  // 64GB
     self.avpBooterPath = @"/System/Library/Frameworks/Virtualization.framework/Versions/A/Resources/AVPBooter.vmapple2.bin";
+    self.vmBundlePath = getVMBundlePath([NSHomeDirectory() stringByAppendingPathComponent:@"VM.bundle"]);
     
     NSLog(@"Configuration reset to defaults");
 }

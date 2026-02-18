@@ -14,6 +14,8 @@ Helper class for installing a macOS virtual machine.
 
 @interface HyfervisorInstaller : NSObject  // hyfervisor installer class declaration
 
+- (instancetype)initWithVMBundlePath:(NSString *)vmBundlePath;  // Designated initializer with VM bundle path
+
 - (void)setUpVirtualMachineArtifacts;  // Set up virtual machine artifacts
 
 - (void)installMacOS:(NSURL *)ipswURL;  // Install macOS using an IPSW file URL

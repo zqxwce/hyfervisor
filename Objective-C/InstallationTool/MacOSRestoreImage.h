@@ -14,6 +14,8 @@ Download the latest macOS restore image from the network.
 
 @interface MacOSRestoreImage : NSObject
 
+- (instancetype)initWithVMBundlePath:(NSString *)vmBundlePath;
+
 - (void)download:(void (^)(void))completionHandler;
 
 @end
