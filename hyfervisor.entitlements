@@ -6,6 +6,8 @@
 	<true/>
 	<key>com.apple.security.device.audio-input</key>
 	<true/>
+	<key>com.apple.vm.networking</key>
+	<true/>
 	<key>com.apple.private.virtualization</key>
 	<true/>
 </dict>

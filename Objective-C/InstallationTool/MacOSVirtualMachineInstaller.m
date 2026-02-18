@@ -159,7 +159,7 @@ static void createDiskImage(NSString *vmBundlePath)
 
     configuration.audioDevices = @[ [HyfervisorConfigurationHelper createSoundDeviceConfiguration] ];
     configuration.graphicsDevices = @[ [HyfervisorConfigurationHelper createGraphicsDeviceConfiguration] ];
-    configuration.networkDevices = @[ [HyfervisorConfigurationHelper createNetworkDeviceConfiguration] ];
+    configuration.networkDevices = @[ [HyfervisorConfigurationHelper createNetworkDeviceConfigurationWithInterface:nil] ];
     configuration.storageDevices = @[ [HyfervisorConfigurationHelper createBlockDeviceConfigurationWithVMBundlePath:[self vmBundlePath]] ];
 
     configuration.pointingDevices = @[ [HyfervisorConfigurationHelper createPointingDeviceConfiguration] ];

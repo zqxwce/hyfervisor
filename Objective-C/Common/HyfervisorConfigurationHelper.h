@@ -28,6 +28,7 @@ The helper that creates various configuration objects exposed in the `VZVirtualM
 + (VZVirtioBlockDeviceConfiguration *)createBlockDeviceConfigurationWithVMBundlePath:(NSString *)vmBundlePath;
 + (VZMacGraphicsDeviceConfiguration *)createGraphicsDeviceConfiguration;
 + (VZVirtioNetworkDeviceConfiguration *)createNetworkDeviceConfiguration;
++ (VZVirtioNetworkDeviceConfiguration *)createNetworkDeviceConfigurationWithInterface:(nullable NSString *)interfaceIdentifier;
 + (VZVirtioSoundDeviceConfiguration *)createSoundDeviceConfiguration;
 
 + (VZPointingDeviceConfiguration *)createPointingDeviceConfiguration;

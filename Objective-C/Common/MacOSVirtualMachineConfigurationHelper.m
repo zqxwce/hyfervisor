@@ -64,11 +64,40 @@ The helper that creates various configuration objects exposed in the `VZVirtualM
 
 + (VZVirtioNetworkDeviceConfiguration *)createNetworkDeviceConfiguration
 {
+    return [self createNetworkDeviceConfigurationWithInterface:nil];
+}
+
++ (VZVirtioNetworkDeviceConfiguration *)createNetworkDeviceConfigurationWithInterface:(NSString *)interfaceIdentifier
+{
     VZVirtioNetworkDeviceConfiguration *networkConfiguration = [[VZVirtioNetworkDeviceConfiguration alloc] init];
     networkConfiguration.MACAddress = [[VZMACAddress alloc] initWithString:@"d6:a7:58:8e:78:d5"];
 
-    VZNATNetworkDeviceAttachment *natAttachment = [[VZNATNetworkDeviceAttachment alloc] init];
-    networkConfiguration.attachment = natAttachment;
+    NSArray<VZBridgedNetworkInterface *> *interfaces = [VZBridgedNetworkInterface networkInterfaces];
+    VZBridgedNetworkInterface *selected = nil;
+
+    if (interfaceIdentifier.length > 0) {
+        for (VZBridgedNetworkInterface *iface in interfaces) {
+            if ([iface.identifier isEqualToString:interfaceIdentifier] ||
+                [iface.localizedDisplayName isEqualToString:interfaceIdentifier]) {
+                selected = iface;
+                break;
+            }
+        }
+    }
+
+    if (!selected) {
+        selected = interfaces.firstObject;
+    }
+
+    if (selected) {
+        VZBridgedNetworkDeviceAttachment *bridgeAttachment = [[VZBridgedNetworkDeviceAttachment alloc] initWithInterface:selected];
+        networkConfiguration.attachment = bridgeAttachment;
+        NSLog(@"Using bridged network interface for installer: %@", selected.localizedDisplayName);
+    } else {
+        NSLog(@"No bridged interfaces available during install; falling back to NAT.");
+        VZNATNetworkDeviceAttachment *natAttachment = [[VZNATNetworkDeviceAttachment alloc] init];
+        networkConfiguration.attachment = natAttachment;
+    }
 
     return networkConfiguration;
 }

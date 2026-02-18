@@ -143,9 +143,9 @@ static void PrintFatalAndExit(NSString *message)
     ];
     configuration.graphicsDevices = @[ graphicsConfiguration ];
     
-    // Network devices (based on user settings)
+    // Network devices (bridged when possible for full LAN presence / Apple ID sign-in)
     if (self.configManager.networkEnabled) {
-        configuration.networkDevices = @[ [HyfervisorConfigurationHelper createNetworkDeviceConfiguration] ];
+        configuration.networkDevices = @[ [HyfervisorConfigurationHelper createNetworkDeviceConfigurationWithInterface:self.configManager.networkInterface] ];
     }
     configuration.storageDevices = @[ [HyfervisorConfigurationHelper createBlockDeviceConfigurationWithVMBundlePath:self.configManager.vmBundlePath] ];
 

@@ -182,11 +182,44 @@ The helper that creates various configuration objects exposed in the `VZVirtualM
 
 + (VZVirtioNetworkDeviceConfiguration *)createNetworkDeviceConfiguration
 {
+    return [self createNetworkDeviceConfigurationWithInterface:nil];
+}
+
++ (VZVirtioNetworkDeviceConfiguration *)createNetworkDeviceConfigurationWithInterface:(NSString *)interfaceIdentifier
+{
     VZVirtioNetworkDeviceConfiguration *networkConfiguration = [[VZVirtioNetworkDeviceConfiguration alloc] init];
     networkConfiguration.MACAddress = [[VZMACAddress alloc] initWithString:@"d6:a7:58:8e:78:d5"];
 
-    VZNATNetworkDeviceAttachment *natAttachment = [[VZNATNetworkDeviceAttachment alloc] init];
-    networkConfiguration.attachment = natAttachment;
+    // Attempt to use bridged networking so Apple ID/iCloud can see a real LAN address.
+    NSArray<VZBridgedNetworkInterface *> *interfaces = [VZBridgedNetworkInterface networkInterfaces];
+    VZBridgedNetworkInterface *selected = nil;
+
+    // Prefer an explicitly configured interface if provided.
+    if (interfaceIdentifier.length > 0) {
+        for (VZBridgedNetworkInterface *iface in interfaces) {
+            if ([iface.identifier isEqualToString:interfaceIdentifier] ||
+                [iface.localizedDisplayName isEqualToString:interfaceIdentifier]) {
+                selected = iface;
+                break;
+            }
+        }
+    }
+
+    // Fallback to the first available bridged interface.
+    if (!selected) {
+        selected = interfaces.firstObject;
+    }
+
+    if (selected) {
+        VZBridgedNetworkDeviceAttachment *bridgeAttachment = [[VZBridgedNetworkDeviceAttachment alloc] initWithInterface:selected];
+        networkConfiguration.attachment = bridgeAttachment;
+        NSLog(@"Using bridged network interface: %@", selected.localizedDisplayName);
+    } else {
+        // Bridged interfaces unavailable; fallback to NAT to keep VM usable.
+        NSLog(@"No bridged network interfaces available; falling back to NAT.");
+        VZNATNetworkDeviceAttachment *natAttachment = [[VZNATNetworkDeviceAttachment alloc] init];
+        networkConfiguration.attachment = natAttachment;
+    }
 
     return networkConfiguration;
 }
