@@ -29,7 +29,7 @@ Lets you live-debug kernels Apple doesn’t officially support, similar to QEMU 
 
 ## Requirements
 
-- Apple Silicon Mac (M1/M2/M3/M4)
+- Apple Silicon Mac (M1/M2/M3/M4/M5)
 - macOS 12.0 or later
 
 ## Build
@@ -55,9 +55,9 @@ make clean
 ./build/Build/Products/Release/hyfervisor-InstallationTool-Objective-C <ipsw path> [vm bundle path]
 
 # 2. Launch the app
-open build/Build/Products/Release/hyfervisor-Objective-C.app
+open build/Build/Products/Release/hyfervisor.app
 # or from CLI with a custom bundle path:
-# open build/Build/Products/Release/hyfervisor-Objective-C.app --args /path/to/VM.bundle
+# open build/Build/Products/Release/hyfervisor.app --args /path/to/VM.bundle
 ```
 
 Pass an explicit VM bundle path if you want the VM artifacts somewhere other than `~/VM.bundle`.
