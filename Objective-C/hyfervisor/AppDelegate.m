@@ -956,12 +956,12 @@ static void PrintFatalAndExit(NSString *message)
 {
     NSAlert *alert = [[NSAlert alloc] init];
     alert.messageText = @"Network Settings";
-    alert.informativeText = @"Choose the bridged interface for the VM or disable networking.";
+    alert.informativeText = @"Choose NAT (shared) or a bridged interface, or disable networking.";
 
-    NSView *accessoryView = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 340, 110)];
+    NSView *accessoryView = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 340, 120)];
 
     // Enable/disable networking
-    NSButton *enableCheckbox = [[NSButton alloc] initWithFrame:NSMakeRect(10, 80, 200, 20)];
+    NSButton *enableCheckbox = [[NSButton alloc] initWithFrame:NSMakeRect(10, 90, 200, 20)];
     [enableCheckbox setButtonType:NSButtonTypeSwitch];
     [enableCheckbox setTitle:@"Enable Networking"];
     [enableCheckbox setState:self.configManager.networkEnabled ? NSControlStateValueOn : NSControlStateValueOff];
@@ -969,43 +969,42 @@ static void PrintFatalAndExit(NSString *message)
     [accessoryView addSubview:enableCheckbox];
 
     // Interface label
-    NSTextField *interfaceLabel = [[NSTextField alloc] initWithFrame:NSMakeRect(10, 50, 100, 20)];
-    interfaceLabel.stringValue = @"Interface:";
+    NSTextField *interfaceLabel = [[NSTextField alloc] initWithFrame:NSMakeRect(10, 55, 120, 20)];
+    interfaceLabel.stringValue = @"Mode / Interface:";
     interfaceLabel.editable = NO;
     interfaceLabel.bordered = NO;
     interfaceLabel.backgroundColor = [NSColor clearColor];
     [accessoryView addSubview:interfaceLabel];
 
     // Interface selector
-    NSPopUpButton *interfacePopup = [[NSPopUpButton alloc] initWithFrame:NSMakeRect(110, 44, 210, 26) pullsDown:NO];
+    NSPopUpButton *interfacePopup = [[NSPopUpButton alloc] initWithFrame:NSMakeRect(140, 49, 190, 26) pullsDown:NO];
     interfacePopup.tag = 301;
 
     NSArray<VZBridgedNetworkInterface *> *interfaces = [VZBridgedNetworkInterface networkInterfaces];
-    if (interfaces.count == 0) {
-        NSMenuItem *item = [[NSMenuItem alloc] initWithTitle:@"No bridged interfaces (NAT fallback)" action:nil keyEquivalent:@""];
-        item.enabled = NO;
-        [interfacePopup.menu addItem:item];
-    } else {
-        for (VZBridgedNetworkInterface *iface in interfaces) {
-            NSString *title = [NSString stringWithFormat:@"%@ (%@)", iface.localizedDisplayName, iface.identifier];
-            [interfacePopup addItemWithTitle:title];
-            interfacePopup.lastItem.representedObject = iface.identifier;
-        }
+    // NAT option first
+    NSMenuItem *natItem = [[NSMenuItem alloc] initWithTitle:@"NAT (shared)" action:nil keyEquivalent:@""];
+    natItem.representedObject = @"NAT";
+    [interfacePopup.menu addItem:natItem];
 
-        // Select current interface if available; otherwise default to first
-        NSString *currentInterface = self.configManager.networkInterface;
-        BOOL matched = NO;
-        for (NSMenuItem *item in interfacePopup.itemArray) {
-            if ([item.representedObject isKindOfClass:[NSString class]] &&
-                [item.representedObject isEqualToString:currentInterface]) {
-                [interfacePopup selectItem:item];
-                matched = YES;
-                break;
-            }
+    for (VZBridgedNetworkInterface *iface in interfaces) {
+        NSString *title = [NSString stringWithFormat:@"Bridged: %@ (%@)", iface.localizedDisplayName, iface.identifier];
+        [interfacePopup addItemWithTitle:title];
+        interfacePopup.lastItem.representedObject = iface.identifier;
+    }
+
+    // Select current value if present, else default to NAT
+    NSString *currentInterface = self.configManager.networkInterface ?: @"NAT";
+    BOOL matched = NO;
+    for (NSMenuItem *item in interfacePopup.itemArray) {
+        if ([item.representedObject isKindOfClass:[NSString class]] &&
+            [item.representedObject caseInsensitiveCompare:currentInterface] == NSOrderedSame) {
+            [interfacePopup selectItem:item];
+            matched = YES;
+            break;
         }
-        if (!matched) {
-            [interfacePopup selectItemAtIndex:0];
-        }
+    }
+    if (!matched) {
+        [interfacePopup selectItem:natItem];
     }
 
     [accessoryView addSubview:interfacePopup];
@@ -1033,6 +1032,34 @@ static void PrintFatalAndExit(NSString *message)
                                    self.configManager.networkInterface ?: @"(default)"];
         [confirm addButtonWithTitle:@"OK"];
         [confirm runModal];
+    }
+}
+
+- (IBAction)toggleNetworkMode:(id)sender
+{
+    // Toggle between NAT and bridged; default bridged uses first interface if available.
+    BOOL switchingToNAT = ([self.configManager.networkInterface caseInsensitiveCompare:@"NAT"] != NSOrderedSame);
+
+    if (switchingToNAT) {
+        self.configManager.networkInterface = @"NAT";
+        NSLog(@"Network mode switched to NAT");
+    } else {
+        NSArray<VZBridgedNetworkInterface *> *interfaces = [VZBridgedNetworkInterface networkInterfaces];
+        if (interfaces.count > 0) {
+            VZBridgedNetworkInterface *first = interfaces.firstObject;
+            self.configManager.networkInterface = first.identifier ?: first.localizedDisplayName ?: @"en0";
+            NSLog(@"Network mode switched to Bridged (%@)", first.localizedDisplayName);
+        } else {
+            // No bridged interfaces available; stay on NAT
+            NSLog(@"No bridged interfaces available; remaining on NAT");
+        }
+    }
+
+    [self saveConfiguration];
+
+    if ([sender isKindOfClass:[NSMenuItem class]]) {
+        NSMenuItem *item = (NSMenuItem *)sender;
+        item.state = [self.configManager.networkInterface caseInsensitiveCompare:@"NAT"] == NSOrderedSame ? NSControlStateValueOn : NSControlStateValueOff;
     }
 }
 

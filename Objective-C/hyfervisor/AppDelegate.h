@@ -28,6 +28,7 @@ The app delegate that sets up and starts the virtual machine.
 - (IBAction)showMemorySettings:(id)sender;
 - (IBAction)showDisplaySettings:(id)sender;
 - (IBAction)showNetworkSettings:(id)sender;
+- (IBAction)toggleNetworkMode:(id)sender;
 - (IBAction)showStorageSettings:(id)sender;
 - (IBAction)showAudioSettings:(id)sender;
 
