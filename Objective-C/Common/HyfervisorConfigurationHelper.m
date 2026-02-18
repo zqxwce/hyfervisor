@@ -194,6 +194,15 @@ The helper that creates various configuration objects exposed in the `VZVirtualM
     NSArray<VZBridgedNetworkInterface *> *interfaces = [VZBridgedNetworkInterface networkInterfaces];
     VZBridgedNetworkInterface *selected = nil;
 
+    // Explicit NAT request bypasses bridged selection.
+    if ([interfaceIdentifier isKindOfClass:[NSString class]] &&
+        [interfaceIdentifier caseInsensitiveCompare:@"NAT"] == NSOrderedSame) {
+        VZNATNetworkDeviceAttachment *natAttachment = [[VZNATNetworkDeviceAttachment alloc] init];
+        networkConfiguration.attachment = natAttachment;
+        NSLog(@"Networking set to NAT (shared)");
+        return networkConfiguration;
+    }
+
     // Prefer an explicitly configured interface if provided.
     if (interfaceIdentifier.length > 0) {
         for (VZBridgedNetworkInterface *iface in interfaces) {
