@@ -198,6 +198,12 @@
                                     </items>
                                 </menu>
                             </menuItem>
+                            <menuItem title="Natural Scrolling" id="natural-scrolling" identifier="natural-scrolling">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="toggleNaturalScrolling:" target="Voe-Tx-rLC" id="natural-scrolling-action"/>
+                                </connections>
+                            </menuItem>
                             <menuItem title="Debug Configuration" id="debug-menu">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <menu key="submenu" title="Debug Configuration" id="debug-submenu">

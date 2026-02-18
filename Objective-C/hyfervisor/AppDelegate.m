@@ -13,6 +13,7 @@ The app delegate that sets up and starts the virtual machine.
 #import "HyfervisorConfigManager.h"
 #import "Path.h"
 
+#import <CoreGraphics/CoreGraphics.h>
 #import <Virtualization/Virtualization.h>
 #import <AppKit/AppKit.h>
 #import <objc/runtime.h>
@@ -36,6 +37,7 @@ The app delegate that sets up and starts the virtual machine.
 
 // Configuration Manager
 @property (nonatomic, strong) HyfervisorConfigManager *configManager;
+@property (nonatomic, strong) id scrollEventMonitor;
 
 - (IBAction)normalRestart:(id)sender;
 - (IBAction)recoveryRestart:(id)sender;
@@ -53,6 +55,14 @@ static void PrintFatalAndExit(NSString *message)
     fflush(stderr);
     NSLog(@"%@", message);
     exit(EXIT_FAILURE);
+}
+
+- (void)dealloc
+{
+    if (self.scrollEventMonitor) {
+        [NSEvent removeMonitor:self.scrollEventMonitor];
+        self.scrollEventMonitor = nil;
+    }
 }
 
 - (instancetype)init
@@ -489,6 +499,10 @@ static void PrintFatalAndExit(NSString *message)
              resolvedBundlePath, resolvedBundlePath]);
     }
     
+    // Ensure scroll direction behavior matches stored preference.
+    [self installScrollMonitor];
+    [self updateNaturalScrollMenuItemState];
+
     dispatch_async(dispatch_get_main_queue(), ^{
         [self createVirtualMachine];
 
@@ -1357,6 +1371,90 @@ static void PrintFatalAndExit(NSString *message)
 {
     // This will trigger the file browser
     [self browseForAVPBooterFile:sender];
+}
+
+- (IBAction)toggleNaturalScrolling:(id)sender
+{
+    self.configManager.naturalScrollingEnabled = !self.configManager.naturalScrollingEnabled;
+    [self saveConfiguration];
+    [self installScrollMonitor];
+    [self updateNaturalScrollMenuItemState];
+}
+
+#pragma mark - Natural Scrolling Helpers
+
+- (void)installScrollMonitor
+{
+    // Remove previous monitor if present
+    if (self.scrollEventMonitor) {
+        [NSEvent removeMonitor:self.scrollEventMonitor];
+        self.scrollEventMonitor = nil;
+    }
+    
+    __weak typeof(self) weakSelf = self;
+    self.scrollEventMonitor = [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskScrollWheel handler:^NSEvent * _Nullable(NSEvent *event) {
+        __strong typeof(weakSelf) strongSelf = weakSelf;
+        if (!strongSelf || strongSelf.configManager.naturalScrollingEnabled) {
+            return event;
+        }
+        
+        // Invert scroll deltas to emulate non‑natural scrolling.
+        CGEventRef original = event.CGEvent;
+        if (!original) {
+            return event;
+        }
+        
+        CGEventRef copied = CGEventCreateCopy(original);
+        if (!copied) {
+            return event;
+        }
+        
+        double deltaY = CGEventGetDoubleValueField(copied, kCGScrollWheelEventDeltaAxis1);
+        double deltaX = CGEventGetDoubleValueField(copied, kCGScrollWheelEventDeltaAxis2);
+        CGEventSetDoubleValueField(copied, kCGScrollWheelEventDeltaAxis1, -deltaY);
+        CGEventSetDoubleValueField(copied, kCGScrollWheelEventDeltaAxis2, -deltaX);
+        
+        NSEvent *inverted = [NSEvent eventWithCGEvent:copied];
+        CFRelease(copied);
+        
+        return inverted ?: event;
+    }];
+}
+
+- (void)updateNaturalScrollMenuItemState
+{
+    NSMenuItem *item = [self menuItemWithIdentifier:@"natural-scrolling"];
+    if (item) {
+        item.state = self.configManager.naturalScrollingEnabled ? NSControlStateValueOn : NSControlStateValueOff;
+    }
+}
+
+- (NSMenuItem *)menuItemWithIdentifier:(NSString *)identifier
+{
+    NSMenu *mainMenu = [NSApp mainMenu];
+    for (NSMenuItem *topItem in mainMenu.itemArray) {
+        NSMenuItem *found = [self searchMenu:topItem.submenu forIdentifier:identifier];
+        if (found) {
+            return found;
+        }
+    }
+    return nil;
+}
+
+- (NSMenuItem *)searchMenu:(NSMenu *)menu forIdentifier:(NSString *)identifier
+{
+    for (NSMenuItem *item in menu.itemArray) {
+        if ([item.identifier isEqualToString:identifier]) {
+            return item;
+        }
+        if (item.hasSubmenu) {
+            NSMenuItem *found = [self searchMenu:item.submenu forIdentifier:identifier];
+            if (found) {
+                return found;
+            }
+        }
+    }
+    return nil;
 }
 
 - (BOOL)validateAVPBooterPath:(NSString *)avpBooterPath error:(NSError **)error
