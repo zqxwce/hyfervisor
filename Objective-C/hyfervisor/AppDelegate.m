@@ -14,6 +14,7 @@ The app delegate that sets up and starts the virtual machine.
 #import "Path.h"
 
 #import <Virtualization/Virtualization.h>
+#import <AppKit/AppKit.h>
 #import <objc/runtime.h>
 #import <objc/message.h>
 #import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
@@ -46,13 +47,11 @@ The app delegate that sets up and starts the virtual machine.
     HyfervisorDelegate *_delegate;
 }
 
-static void ShowFatalAlertAndExit(NSString *message)
+static void PrintFatalAndExit(NSString *message)
 {
-    NSAlert *alert = [[NSAlert alloc] init];
-    alert.messageText = @"Virtual Machine Not Found";
-    alert.informativeText = message;
-    [alert addButtonWithTitle:@"OK"];
-    [alert runModal];
+    fprintf(stderr, "%s\n", [message UTF8String]);
+    fflush(stderr);
+    NSLog(@"%@", message);
     exit(EXIT_FAILURE);
 }
 
@@ -77,7 +76,7 @@ static void ShowFatalAlertAndExit(NSString *message)
     
     // Fail fast with a clear error if the VM bundle is missing.
     if (![[NSFileManager defaultManager] fileExistsAtPath:bundlePathMessage]) {
-        ShowFatalAlertAndExit([NSString stringWithFormat:
+        PrintFatalAndExit([NSString stringWithFormat:
             @"Virtual Machine Bundle not found at:\n%@\n\nRun the InstallationTool with the same path to create it, e.g.\n"
              "./hyfervisor-InstallationTool-Objective-C <ipsw> \"%@\"",
              bundlePathMessage, bundlePathMessage]);
@@ -455,14 +454,39 @@ static void ShowFatalAlertAndExit(NSString *message)
     // Load configuration from file
     [self.configManager loadConfiguration];
 
-    // Allow overriding the VM bundle path via command line argument (first arg after the executable).
+    // Allow overriding the VM bundle path via command line argument (first arg after the executable),
+    // otherwise prompt the user with a directory picker prefilled to the default.
     NSArray<NSString *> *arguments = [[NSProcessInfo processInfo] arguments];
+    NSString *resolvedBundlePath = getVMBundlePath(self.configManager.vmBundlePath);
     if (arguments.count >= 2) {
         // arguments[0] is the executable path
         NSString *cliBundlePath = arguments[1];
         if (cliBundlePath.length > 0) {
-            self.configManager.vmBundlePath = getVMBundlePath(cliBundlePath);
+            resolvedBundlePath = getVMBundlePath(cliBundlePath);
         }
+    } else {
+        NSOpenPanel *panel = [NSOpenPanel openPanel];
+        panel.canChooseFiles = NO;
+        panel.canChooseDirectories = YES;
+        panel.allowsMultipleSelection = NO;
+        panel.prompt = @"Select VM Bundle";
+        panel.message = @"Choose the folder that contains your VM.bundle (created by the InstallationTool).";
+        panel.directoryURL = [NSURL fileURLWithPath:resolvedBundlePath isDirectory:YES];
+        panel.nameFieldStringValue = [resolvedBundlePath lastPathComponent];
+        if ([panel runModal] == NSModalResponseOK && panel.URL) {
+            resolvedBundlePath = getVMBundlePath(panel.URL.path);
+        } else {
+            PrintFatalAndExit(@"A VM bundle path is required to launch hyfervisor.");
+        }
+    }
+    self.configManager.vmBundlePath = resolvedBundlePath;
+
+    // Fail fast with a clear CLI message if the VM bundle is missing (before any UI is created).
+    if (![[NSFileManager defaultManager] fileExistsAtPath:resolvedBundlePath]) {
+        PrintFatalAndExit([NSString stringWithFormat:
+            @"Virtual Machine Bundle not found at:\n%@\nRun the InstallationTool with the same path to create it, e.g.\n"
+             "./hyfervisor-InstallationTool-Objective-C <ipsw> \"%@\"",
+             resolvedBundlePath, resolvedBundlePath]);
     }
     
     dispatch_async(dispatch_get_main_queue(), ^{
