@@ -1,13 +1,13 @@
 # hyfervisor
 
-Apple Silicon Mac에서 macOS 커널을 live debugging 할 수 있는 가상화 도구
+Virtualization tool for live-debugging the macOS kernel on Apple Silicon Macs
 
-Apple이 지원하지 않는 커널 라이브 디버깅을 리눅스 QEMU처럼 사용 가능
+Lets you live-debug kernels Apple doesn’t officially support, similar to QEMU on Linux
 
-- 직접 빌드한 XNU 커널과 직접 만든 kext 함께 부팅가능
-- KASAN 커널 부팅 지원
-- breakpoint를 통한 커버리지 확인 가능(불안정하고 느림)
-- gui 1TR 접근 가능
+- Boot a self-built XNU kernel alongside custom kexts
+- Supports booting KASAN kernels
+- Can check coverage via breakpoints (unstable and slow)
+- GUI access to 1TR
 
 ## Screenshots
 
@@ -22,39 +22,39 @@ Apple이 지원하지 않는 커널 라이브 디버깅을 리눅스 QEMU처럼 
 
 ## Features
 
-- macOS 가상머신 실행
-- 하드웨어 가속 (CPU, 메모리, 그래픽, 네트워크, 오디오)
-- GDB 디버그 스텁 지원
-- 커스텀 커널/Kext 로딩
+- Run macOS virtual machines
+- Hardware acceleration (CPU, memory, graphics, networking, audio)
+- GDB debug stub support
+- Load custom kernels/kexts
 
 ## Requirements
 
 - Apple Silicon Mac (M1/M2/M3/M4)
-- macOS 12.0 이상
+- macOS 12.0 or later
 
 ## Build
 
 ```bash
-# 전체 빌드
+# Full build
 make all
 
-# 설치 도구
+# Installation tool
 make hyfervisor-InstallationTool-Objective-C
 
-# 메인 앱
+# Main app
 make hyfervisor-Objective-C
 
-# 클린
+# Clean
 make clean
 ```
 
 ## Usage
 
 ```bash
-# 1. VM 설치
+# 1. Install the VM
 ./build/Build/Products/Release/hyfervisor-InstallationTool-Objective-C <ipsw path>
 
-# 2. 앱 실행
+# 2. Launch the app
 open build/Build/Products/Release/hyfervisor-Objective-C.app
 ```
 
