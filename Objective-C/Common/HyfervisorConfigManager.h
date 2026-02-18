@@ -28,6 +28,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, strong) NSString *networkInterface;
 @property (nonatomic, assign) UInt64 diskSize;
 @property (nonatomic, strong) NSString *avpBooterPath;
+@property (nonatomic, strong) NSString *vmBundlePath;
 
 // Configuration Management
 - (BOOL)loadConfiguration;

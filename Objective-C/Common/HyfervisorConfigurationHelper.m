@@ -157,10 +157,10 @@ The helper that creates various configuration objects exposed in the `VZVirtualM
     return YES;
 }
 
-+ (VZVirtioBlockDeviceConfiguration *)createBlockDeviceConfiguration
++ (VZVirtioBlockDeviceConfiguration *)createBlockDeviceConfigurationWithVMBundlePath:(NSString *)vmBundlePath
 {
     NSError *error;
-    VZDiskImageStorageDeviceAttachment *diskAttachment = [[VZDiskImageStorageDeviceAttachment alloc] initWithURL:getDiskImageURL() readOnly:NO error:&error];
+    VZDiskImageStorageDeviceAttachment *diskAttachment = [[VZDiskImageStorageDeviceAttachment alloc] initWithURL:getDiskImageURL(vmBundlePath) readOnly:NO error:&error];
     if (!diskAttachment) {
         abortWithErrorMessage([NSString stringWithFormat:@"Failed to create VZDiskImageStorageDeviceAttachment. %@", error.localizedDescription]);
     }

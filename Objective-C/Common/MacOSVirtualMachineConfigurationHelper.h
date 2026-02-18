@@ -23,7 +23,7 @@ The helper that creates various configuration objects exposed in the `VZVirtualM
 
 + (VZMacOSBootLoader *)createBootLoader;
 
-+ (VZVirtioBlockDeviceConfiguration *)createBlockDeviceConfiguration;
++ (VZVirtioBlockDeviceConfiguration *)createBlockDeviceConfigurationWithVMBundlePath:(NSString *)vmBundlePath;
 + (VZMacGraphicsDeviceConfiguration *)createGraphicsDeviceConfiguration;
 + (VZVirtioNetworkDeviceConfiguration *)createNetworkDeviceConfiguration;
 + (VZVirtioSoundDeviceConfiguration *)createSoundDeviceConfiguration;

@@ -15,6 +15,23 @@ Download the latest macOS restore image from the network.
 #ifdef __arm64__
 
 @implementation MacOSRestoreImage
+{
+    NSString *_vmBundlePath;
+}
+
+- (instancetype)initWithVMBundlePath:(NSString *)vmBundlePath
+{
+    self = [super init];
+    if (self) {
+        _vmBundlePath = getVMBundlePath(vmBundlePath);
+    }
+    return self;
+}
+
+- (NSString *)vmBundlePath
+{
+    return _vmBundlePath ?: getVMBundlePath(nil);
+}
 
 // MARK: Download the restore image from the network.
 
@@ -32,7 +49,7 @@ Download the latest macOS restore image from the network.
                 abortWithErrorMessage([NSString stringWithFormat:@"Failed to download restore image. %@", error.localizedDescription]);
             }
 
-            if (![[NSFileManager defaultManager] moveItemAtURL:location toURL:getRestoreImageURL() error:&error]) {
+            if (![[NSFileManager defaultManager] moveItemAtURL:location toURL:getRestoreImageURL([self vmBundlePath]) error:&error]) {
                 abortWithErrorMessage(error.localizedDescription);
             }
 

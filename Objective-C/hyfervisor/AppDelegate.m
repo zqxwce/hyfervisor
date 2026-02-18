@@ -46,6 +46,16 @@ The app delegate that sets up and starts the virtual machine.
     HyfervisorDelegate *_delegate;
 }
 
+static void ShowFatalAlertAndExit(NSString *message)
+{
+    NSAlert *alert = [[NSAlert alloc] init];
+    alert.messageText = @"Virtual Machine Not Found";
+    alert.informativeText = message;
+    [alert addButtonWithTitle:@"OK"];
+    [alert runModal];
+    exit(EXIT_FAILURE);
+}
+
 - (instancetype)init
 {
     self = [super init];
@@ -61,16 +71,23 @@ The app delegate that sets up and starts the virtual machine.
 
 - (VZMacPlatformConfiguration *)createMacPlatformConfiguration
 {
+    NSString *vmBundlePath = self.configManager.vmBundlePath;
+    NSString *bundlePathMessage = getVMBundlePath(vmBundlePath);
     VZMacPlatformConfiguration *macPlatformConfiguration = [[VZMacPlatformConfiguration alloc] init];
-    VZMacAuxiliaryStorage *auxiliaryStorage = [[VZMacAuxiliaryStorage alloc] initWithContentsOfURL:getAuxiliaryStorageURL()];
-    macPlatformConfiguration.auxiliaryStorage = auxiliaryStorage;
-
-    if (![[NSFileManager defaultManager] fileExistsAtPath:getVMBundlePath()]) {
-        abortWithErrorMessage([NSString stringWithFormat:@"Missing Virtual Machine Bundle at %@. Run InstallationTool first to create it.", getVMBundlePath()]);
+    
+    // Fail fast with a clear error if the VM bundle is missing.
+    if (![[NSFileManager defaultManager] fileExistsAtPath:bundlePathMessage]) {
+        ShowFatalAlertAndExit([NSString stringWithFormat:
+            @"Virtual Machine Bundle not found at:\n%@\n\nRun the InstallationTool with the same path to create it, e.g.\n"
+             "./hyfervisor-InstallationTool-Objective-C <ipsw> \"%@\"",
+             bundlePathMessage, bundlePathMessage]);
     }
 
+    VZMacAuxiliaryStorage *auxiliaryStorage = [[VZMacAuxiliaryStorage alloc] initWithContentsOfURL:getAuxiliaryStorageURL(vmBundlePath)];
+    macPlatformConfiguration.auxiliaryStorage = auxiliaryStorage;
+
     // Retrieve the hardware model and save this value to disk during installation.
-    NSData *hardwareModelData = [[NSData alloc] initWithContentsOfURL:getHardwareModelURL()];
+    NSData *hardwareModelData = [[NSData alloc] initWithContentsOfURL:getHardwareModelURL(vmBundlePath)];
     if (!hardwareModelData) {
         abortWithErrorMessage(@"Failed to retrieve hardware model data.");
     }
@@ -87,7 +104,7 @@ The app delegate that sets up and starts the virtual machine.
 
     // Retrieve the machine identifier and save this value to disk
     // during installation.
-    NSData *machineIdentifierData = [[NSData alloc] initWithContentsOfURL:getMachineIdentifierURL()];
+    NSData *machineIdentifierData = [[NSData alloc] initWithContentsOfURL:getMachineIdentifierURL(vmBundlePath)];
     if (!machineIdentifierData) {
         abortWithErrorMessage(@"Failed to retrieve machine identifier data.");
     }
@@ -131,7 +148,7 @@ The app delegate that sets up and starts the virtual machine.
     if (self.configManager.networkEnabled) {
         configuration.networkDevices = @[ [HyfervisorConfigurationHelper createNetworkDeviceConfiguration] ];
     }
-    configuration.storageDevices = @[ [HyfervisorConfigurationHelper createBlockDeviceConfiguration] ];
+    configuration.storageDevices = @[ [HyfervisorConfigurationHelper createBlockDeviceConfigurationWithVMBundlePath:self.configManager.vmBundlePath] ];
 
     configuration.pointingDevices = @[ [HyfervisorConfigurationHelper createPointingDeviceConfiguration] ];
     configuration.keyboards = @[ [HyfervisorConfigurationHelper createKeyboardConfiguration] ];
@@ -308,10 +325,11 @@ The app delegate that sets up and starts the virtual machine.
 
 - (void)restoreVirtualMachine API_AVAILABLE(macosx(14.0));
 {
-    [_virtualMachine restoreMachineStateFromURL:getSaveFileURL() completionHandler:^(NSError * _Nullable error) {
+    NSURL *saveFileURL = getSaveFileURL(self.configManager.vmBundlePath);
+    [_virtualMachine restoreMachineStateFromURL:saveFileURL completionHandler:^(NSError * _Nullable error) {
         // Remove the saved file. Whether success or failure, the state no longer matches the VM's disk.
         NSFileManager *fileManager = [NSFileManager defaultManager];
-        [fileManager removeItemAtURL:getSaveFileURL() error:nil];
+        [fileManager removeItemAtURL:saveFileURL error:nil];
 
         if (!error) {
             [self resumeVirtualMachine];
@@ -436,6 +454,16 @@ The app delegate that sets up and starts the virtual machine.
 #ifdef __arm64__
     // Load configuration from file
     [self.configManager loadConfiguration];
+
+    // Allow overriding the VM bundle path via command line argument (first arg after the executable).
+    NSArray<NSString *> *arguments = [[NSProcessInfo processInfo] arguments];
+    if (arguments.count >= 2) {
+        // arguments[0] is the executable path
+        NSString *cliBundlePath = arguments[1];
+        if (cliBundlePath.length > 0) {
+            self.configManager.vmBundlePath = getVMBundlePath(cliBundlePath);
+        }
+    }
     
     dispatch_async(dispatch_get_main_queue(), ^{
         [self createVirtualMachine];
@@ -452,7 +480,8 @@ The app delegate that sets up and starts the virtual machine.
 
         if (@available(macOS 14.0, *)) {
             NSFileManager *fileManager = [NSFileManager defaultManager];
-            if ([fileManager fileExistsAtPath:getSaveFileURL().path]) {
+            NSURL *saveFileURL = getSaveFileURL(self.configManager.vmBundlePath);
+            if ([fileManager fileExistsAtPath:saveFileURL.path]) {
                 [self restoreVirtualMachine];
             } else {
                 [self startVirtualMachine];
@@ -474,7 +503,8 @@ The app delegate that sets up and starts the virtual machine.
 #ifdef __arm64__
 - (void)saveVirtualMachine:(void (^)(void))completionHandler API_AVAILABLE(macosx(14.0));
 {
-    [_virtualMachine saveMachineStateToURL:getSaveFileURL() completionHandler:^(NSError * _Nullable error) {
+    NSURL *saveFileURL = getSaveFileURL(self.configManager.vmBundlePath);
+    [_virtualMachine saveMachineStateToURL:saveFileURL completionHandler:^(NSError * _Nullable error) {
         if (error) {
             abortWithErrorMessage([NSString stringWithFormat:@"%@%@", @"Virtual machine failed to save with ", error.localizedDescription]);
         }

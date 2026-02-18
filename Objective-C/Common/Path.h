@@ -10,44 +10,46 @@ A helper function to retrieve the various file URLs that this sample code uses.
 
 #import <Foundation/Foundation.h>
 
-static inline NSString *getVMBundlePath(void)
+static inline NSString *getVMBundlePath(NSString *vmBundlePath)
 {
-    return [NSString stringWithFormat:@"%@%@", NSHomeDirectory(), @"/VM.bundle/"];
+    NSString *path = vmBundlePath ?: [NSHomeDirectory() stringByAppendingPathComponent:@"VM.bundle"];
+    // Expand ~ and remove any trailing slash inconsistencies.
+    return [[path stringByExpandingTildeInPath] stringByStandardizingPath];
 }
 
-static inline NSURL *getVMBundleURL(void)
+static inline NSURL *getVMBundleURL(NSString *vmBundlePath)
 {
-    return [[NSURL alloc] initFileURLWithPath:getVMBundlePath()];
+    return [[NSURL alloc] initFileURLWithPath:getVMBundlePath(vmBundlePath) isDirectory:YES];
 }
 
-static inline NSURL *getAuxiliaryStorageURL(void)
+static inline NSURL *getAuxiliaryStorageURL(NSString *vmBundlePath)
 {
-    return [getVMBundleURL() URLByAppendingPathComponent:@"AuxiliaryStorage"];
+    return [getVMBundleURL(vmBundlePath) URLByAppendingPathComponent:@"AuxiliaryStorage"];
 }
 
-static inline NSURL *getDiskImageURL(void)
+static inline NSURL *getDiskImageURL(NSString *vmBundlePath)
 {
-    return [getVMBundleURL() URLByAppendingPathComponent:@"Disk.img"];
+    return [getVMBundleURL(vmBundlePath) URLByAppendingPathComponent:@"Disk.img"];
 }
 
-static inline NSURL *getHardwareModelURL(void)
+static inline NSURL *getHardwareModelURL(NSString *vmBundlePath)
 {
-    return [getVMBundleURL() URLByAppendingPathComponent:@"HardwareModel"];
+    return [getVMBundleURL(vmBundlePath) URLByAppendingPathComponent:@"HardwareModel"];
 }
 
-static inline NSURL *getMachineIdentifierURL(void)
+static inline NSURL *getMachineIdentifierURL(NSString *vmBundlePath)
 {
-    return [getVMBundleURL() URLByAppendingPathComponent:@"MachineIdentifier"];
+    return [getVMBundleURL(vmBundlePath) URLByAppendingPathComponent:@"MachineIdentifier"];
 }
 
-static inline NSURL *getRestoreImageURL(void)
+static inline NSURL *getRestoreImageURL(NSString *vmBundlePath)
 {
-    return [getVMBundleURL() URLByAppendingPathComponent:@"RestoreImage.ipsw"];
+    return [getVMBundleURL(vmBundlePath) URLByAppendingPathComponent:@"RestoreImage.ipsw"];
 }
 
-static inline NSURL *getSaveFileURL(void)
+static inline NSURL *getSaveFileURL(NSString *vmBundlePath)
 {
-    return [getVMBundleURL() URLByAppendingPathComponent:@"SaveFile.vzvmsave"];
+    return [getVMBundleURL(vmBundlePath) URLByAppendingPathComponent:@"SaveFile.vzvmsave"];
 }
 
 #endif /* Path_h */

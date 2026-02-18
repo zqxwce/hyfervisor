@@ -21,15 +21,30 @@ Helper class for installing a macOS virtual machine.
 @implementation HyfervisorInstaller {  // hyfervisor installer implementation
     VZVirtualMachine *_virtualMachine;  // Virtual machine instance
     HyfervisorDelegate *_delegate;  // hyfervisor delegate
+    NSString *_vmBundlePath;  // Path where VM artifacts are stored
+}
+
+- (instancetype)initWithVMBundlePath:(NSString *)vmBundlePath
+{
+    self = [super init];
+    if (self) {
+        _vmBundlePath = getVMBundlePath(vmBundlePath);
+    }
+    return self;
+}
+
+- (NSString *)vmBundlePath
+{
+    return _vmBundlePath ?: getVMBundlePath(nil);
 }
 
 // MARK: - Internal helper methods
 
 // Create the bundle used to store artifacts produced during installation.
-static void createVMBundle(void)
+static void createVMBundle(NSString *vmBundlePath)
 {
     NSError *error;
-    BOOL bundleCreateResult = [[NSFileManager defaultManager] createDirectoryAtURL:getVMBundleURL()
+    BOOL bundleCreateResult = [[NSFileManager defaultManager] createDirectoryAtURL:getVMBundleURL(vmBundlePath)
                                                        withIntermediateDirectories:NO
                                                                         attributes:nil
                                                                              error:&error];
@@ -46,11 +61,11 @@ static void createVMBundle(void)
 // * ASIF disk image: a sparse format that transfers efficiently between hosts
 //   without depending on host filesystem sparsity features.
 //   ASIF is supported starting in macOS 16.
-static void createASIFDiskImage(void)
+static void createASIFDiskImage(NSString *vmBundlePath)
 {
     NSError *error = nil;
     NSTask *task = [NSTask launchedTaskWithExecutableURL:[NSURL fileURLWithPath:@"/usr/sbin/diskutil"]
-                                               arguments:@[@"image", @"create", @"blank", @"--fs", @"none", @"--format", @"ASIF", @"--size", @"128GiB", getDiskImageURL().path]
+                                               arguments:@[@"image", @"create", @"blank", @"--fs", @"none", @"--format", @"ASIF", @"--size", @"128GiB", getDiskImageURL(vmBundlePath).path]
                                                    error:&error
                                       terminationHandler:nil];
 
@@ -64,9 +79,9 @@ static void createASIFDiskImage(void)
     }
 }
 
-static void createRAWDiskImage(void)
+static void createRAWDiskImage(NSString *vmBundlePath)
 {
-    int fd = open([getDiskImageURL() fileSystemRepresentation], O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+    int fd = open([getDiskImageURL(vmBundlePath) fileSystemRepresentation], O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
     if (fd == -1) {
         abortWithErrorMessage(@"Could not create disk image.");
     }
@@ -83,12 +98,12 @@ static void createRAWDiskImage(void)
     }
 }
 
-static void createDiskImage(void)
+static void createDiskImage(NSString *vmBundlePath)
 {
     if (@available(macOS 16.0, *)) {
-        createASIFDiskImage();
+        createASIFDiskImage(vmBundlePath);
     } else {
-        createRAWDiskImage();
+        createRAWDiskImage(vmBundlePath);
     }
 }
 
@@ -99,7 +114,7 @@ static void createDiskImage(void)
     VZMacPlatformConfiguration *macPlatformConfiguration = [[VZMacPlatformConfiguration alloc] init];
 
     NSError *error;
-    VZMacAuxiliaryStorage *auxiliaryStorage = [[VZMacAuxiliaryStorage alloc] initCreatingStorageAtURL:getAuxiliaryStorageURL()
+    VZMacAuxiliaryStorage *auxiliaryStorage = [[VZMacAuxiliaryStorage alloc] initCreatingStorageAtURL:getAuxiliaryStorageURL([self vmBundlePath])
                                                                                         hardwareModel:macOSConfiguration.hardwareModel
                                                                                               options:VZMacAuxiliaryStorageInitializationOptionAllowOverwrite
                                                                                                 error:&error];
@@ -112,8 +127,8 @@ static void createDiskImage(void)
     macPlatformConfiguration.machineIdentifier = [[VZMacMachineIdentifier alloc] init];
 
     // Persist the hardware model and machine identifier so they can be reused on subsequent boots.
-    [macPlatformConfiguration.hardwareModel.dataRepresentation writeToURL:getHardwareModelURL() atomically:YES];
-    [macPlatformConfiguration.machineIdentifier.dataRepresentation writeToURL:getMachineIdentifierURL() atomically:YES];
+    [macPlatformConfiguration.hardwareModel.dataRepresentation writeToURL:getHardwareModelURL([self vmBundlePath]) atomically:YES];
+    [macPlatformConfiguration.machineIdentifier.dataRepresentation writeToURL:getMachineIdentifierURL([self vmBundlePath]) atomically:YES];
 
     return macPlatformConfiguration;
 }
@@ -138,14 +153,14 @@ static void createDiskImage(void)
     }
 
     // Create 128 GB disk image
-    createDiskImage();
+    createDiskImage([self vmBundlePath]);
 
     configuration.bootLoader = [HyfervisorConfigurationHelper createBootLoader];
 
     configuration.audioDevices = @[ [HyfervisorConfigurationHelper createSoundDeviceConfiguration] ];
     configuration.graphicsDevices = @[ [HyfervisorConfigurationHelper createGraphicsDeviceConfiguration] ];
     configuration.networkDevices = @[ [HyfervisorConfigurationHelper createNetworkDeviceConfiguration] ];
-    configuration.storageDevices = @[ [HyfervisorConfigurationHelper createBlockDeviceConfiguration] ];
+    configuration.storageDevices = @[ [HyfervisorConfigurationHelper createBlockDeviceConfigurationWithVMBundlePath:[self vmBundlePath]] ];
 
     configuration.pointingDevices = @[ [HyfervisorConfigurationHelper createPointingDeviceConfiguration] ];
     configuration.keyboards = @[ [HyfervisorConfigurationHelper createKeyboardConfiguration] ];
@@ -200,7 +215,7 @@ static void createDiskImage(void)
 // Create the bundle in the user’s home directory to store artifacts generated during installation.
 - (void)setUpVirtualMachineArtifacts
 {
-    createVMBundle();
+    createVMBundle([self vmBundlePath]);
 }
 
 // MARK: Start macOS installation
