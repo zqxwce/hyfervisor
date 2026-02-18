@@ -31,6 +31,7 @@ The app delegate that sets up and starts the virtual machine.
 - (IBAction)toggleNetworkMode:(id)sender;
 - (IBAction)showStorageSettings:(id)sender;
 - (IBAction)showAudioSettings:(id)sender;
+- (IBAction)toggleNaturalScrolling:(id)sender;
 
 // Debug Configuration Actions
 - (IBAction)showDebugPortSettings:(id)sender;

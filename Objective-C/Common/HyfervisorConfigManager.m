@@ -60,6 +60,7 @@ static HyfervisorConfigManager *sharedManager = nil;
     self.panicDeviceEnabled = [config[@"panicDeviceEnabled"] boolValue];
     self.audioEnabled = [config[@"audioEnabled"] boolValue];
     self.networkEnabled = [config[@"networkEnabled"] boolValue];
+    self.naturalScrollingEnabled = config[@"naturalScrollingEnabled"] ? [config[@"naturalScrollingEnabled"] boolValue] : YES;
     self.networkInterface = config[@"networkInterface"] ?: @"en0";
     self.diskSize = [config[@"diskSize"] unsignedLongLongValue] ?: (64ULL * 1024 * 1024 * 1024);
     self.avpBooterPath = config[@"avpBooterPath"] ?: @"/System/Library/Frameworks/Virtualization.framework/Versions/A/Resources/AVPBooter.vmapple2.bin";
@@ -99,6 +100,7 @@ static HyfervisorConfigManager *sharedManager = nil;
         @"panicDeviceEnabled": @(self.panicDeviceEnabled),
         @"audioEnabled": @(self.audioEnabled),
         @"networkEnabled": @(self.networkEnabled),
+        @"naturalScrollingEnabled": @(self.naturalScrollingEnabled),
         @"networkInterface": self.networkInterface ?: @"en0",
         @"diskSize": @(self.diskSize),
         @"avpBooterPath": self.avpBooterPath ?: @"/System/Library/Frameworks/Virtualization.framework/Versions/A/Resources/AVPBooter.vmapple2.bin",
@@ -129,6 +131,7 @@ static HyfervisorConfigManager *sharedManager = nil;
     self.panicDeviceEnabled = YES;
     self.audioEnabled = YES;
     self.networkEnabled = YES;
+    self.naturalScrollingEnabled = YES;
     self.networkInterface = @"en0";
     self.diskSize = 64ULL * 1024 * 1024 * 1024;  // 64GB
     self.avpBooterPath = @"/System/Library/Frameworks/Virtualization.framework/Versions/A/Resources/AVPBooter.vmapple2.bin";

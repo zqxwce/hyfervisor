@@ -25,6 +25,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, assign) BOOL panicDeviceEnabled;
 @property (nonatomic, assign) BOOL audioEnabled;
 @property (nonatomic, assign) BOOL networkEnabled;
+@property (nonatomic, assign) BOOL naturalScrollingEnabled;
 @property (nonatomic, strong) NSString *networkInterface;
 @property (nonatomic, assign) UInt64 diskSize;
 @property (nonatomic, strong) NSString *avpBooterPath;
